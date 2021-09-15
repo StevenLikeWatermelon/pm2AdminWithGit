@@ -118,7 +118,7 @@ export default {
     getAllBranch () {
       this.loading = true
       axios.post('/get-all-branch').then(({ data }) => {
-        console.log(data)
+        console.log(data.split('\n'))
         this.loading = false
       })
     },
