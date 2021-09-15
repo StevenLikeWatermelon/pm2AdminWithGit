@@ -72,6 +72,7 @@ export default {
   },
   created () {
     this.getPm2List()
+    this.getAllBranch()
   },
   mounted () {
     setTimeout(() => {
@@ -111,6 +112,13 @@ export default {
             disabled: item.name === 'admin'
           }
         })
+        this.loading = false
+      })
+    },
+    getAllBranch () {
+      this.loading = true
+      axios.post('/get-all-branch').then(({ data }) => {
+        console.log(data)
         this.loading = false
       })
     },

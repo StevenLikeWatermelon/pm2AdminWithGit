@@ -188,6 +188,18 @@ app.post('/get-logs', function (req, res) {
   })
 })
 
+// 获取git 所有的branch
+app.post('/get-all-branch', function (req, res) {
+  shell.exec('git branch -r', function (code, stdout, stderr) {
+    res.send({
+      message: 'success',
+      code,
+      data: stdout || stderr,
+      success: 1
+    })
+  })
+})
+
 const server = app.listen(3002, function () {
   const host = server.address().address
   const port = server.address().port
