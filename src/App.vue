@@ -1,13 +1,29 @@
 <template>
   <div id="app">
     <div class="title">
-      <span>前端服务运维</span>
+      <span>wechat侧边栏打包</span>
     </div>
     <div class="content-global">
-      <el-button type="primary" :loading="loading" @click="viewLogs">查看运行日志</el-button>
-      <el-button type="warning" :loading="loading" @click="flushLogs">清理日志</el-button>
+
+      <el-select v-model="branch" placeholder="请选择" filterable style="margin-left: 15px;">
+        <el-option
+          v-for="item in branchData"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value">
+        </el-option>
+      </el-select>
+      <el-select v-model="dir" placeholder="请选择" filterable style="margin-left: 15px;">
+        <el-option
+          v-for="item in dirData"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value">
+        </el-option>
+      </el-select>
+      <el-button  @click="build" :loading="loading" type="success" style="margin-left: 15px;">打包</el-button>
     </div>
-    <div class="pm2-table">
+    <!-- <div class="pm2-table">
       <el-table stripe :data="tableData" border style="width: 100%">
         <el-table-column prop="pid" label="pid" width="180">
         </el-table-column>
@@ -21,12 +37,12 @@
           </template>
         </el-table-column>
         <el-table-column prop="restartTime" label="重启次数"> </el-table-column>
-        <!-- <el-table-column prop="port" label="服务端口号"> </el-table-column>
-        <el-table-column prop="watch" label="watch"> </el-table-column> -->
-        <el-table-column label="操作" width="650">
+        <el-table-column prop="port" label="服务端口号"> </el-table-column>
+        <el-table-column prop="watch" label="watch"> </el-table-column>
+        <el-table-column label="操作" width="850">
           <template slot-scope="{row}">
 
-            <el-button v-if="row.name === 'wechat-mananger'"  @click="viewLogs(row.pm_out_log_path)" :loading="loading" type="success" round>查看日志</el-button>
+            <el-button v-if="row.name === 'build-wechat'"  @click="build(row.name)" :loading="loading" type="success" round>打包</el-button>
             <el-button  @click="viewLogs(row.pm_out_log_path)" :loading="loading" type="success" round>查看日志</el-button>
             <el-button  @click="viewLogs(row.pm_err_log_path)" :loading="loading" type="success" round>查看错误日志</el-button>
             <el-button  @click="restartProcess(row.name)" :loading="loading" type="primary" round>重启服务</el-button>
@@ -35,11 +51,24 @@
           </template>
         </el-table-column>
       </el-table>
-    </div>
+    </div> -->
     <div class="pre-code" v-if="!loading">
+      <div>
+        <span>正常日志</span>
+      </div>
       <pre>
         <code>
           {{codeStr}}
+        </code>
+      </pre>
+    </div>
+    <div class="pre-code" v-if="!loading">
+      <div>
+        <span>错误日志</span>
+      </div>
+      <pre>
+        <code>
+          {{codeStrErr}}
         </code>
       </pre>
     </div>
@@ -69,12 +98,52 @@ export default {
     return {
       tableData: [],
       codeStr: '暂无日志',
+      codeStrErr: '暂无日志',
+      branch: 0,
+      dir: 0,
+      branchData: [],
+      dirData: [{
+        value: 0,
+        label: 'dev'
+      }, {
+        value: 1,
+        label: 'test'
+      }, {
+        value: 2,
+        label: 'test6'
+      }, {
+        value: 3,
+        label: 'pro'
+      }],
       loading: false
     }
   },
   created () {
-    this.getPm2List()
     this.getAllBranch()
+  },
+  computed: {
+    dirLabel () {
+      let str = ''
+      for (let index = 0; index < this.dirData.length; index++) {
+        const element = this.dirData[index]
+        if (element.value === this.dir) {
+          str = element.label
+          break
+        }
+      }
+      return str
+    },
+    branchLabel () {
+      let str = ''
+      for (let index = 0; index < this.branchData.length; index++) {
+        const element = this.branchData[index]
+        if (element.value === this.branch) {
+          str = element.label
+          break
+        }
+      }
+      return str
+    }
   },
   mounted () {
     setTimeout(() => {
@@ -96,66 +165,81 @@ export default {
       }
       return color
     },
-    getPm2List () {
-      this.loading = true
-      axios.get('/process-list').then(({ data }) => {
-        this.tableData = (data || []).map(item => {
-          return {
-            pid: item.pid,
-            name: item.name,
-            status: item.pm2_env?.status,
-            port: item.pm2_env?.args ? item.pm2_env.args[0] : '暂无端口',
-            restartTime: item.pm2_env?.restart_time,
-            pm_out_log_path: item.pm2_env?.pm_out_log_path,
-            pm_err_log_path: item.pm2_env?.pm_err_log_path,
-            watch: `${item.pm2_env?.watch}`,
-            cpu: `${item.monit?.cpu}`,
-            memory: `${+item.monit?.memory / 1024 / 1024}MB`,
-            disabled: item.name === 'admin'
-          }
-        })
-        this.loading = false
-      })
-    },
+    // getPm2List () {
+    //   this.loading = true
+    //   axios.get('/process-list').then(({ data }) => {
+    //     this.tableData = (data || []).map(item => {
+    //       return {
+    //         pid: item.pid,
+    //         name: item.name,
+    //         status: item.pm2_env?.status,
+    //         port: item.pm2_env?.args ? item.pm2_env.args[0] : '暂无端口',
+    //         restartTime: item.pm2_env?.restart_time,
+    //         pm_out_log_path: item.pm2_env?.pm_out_log_path,
+    //         pm_err_log_path: item.pm2_env?.pm_err_log_path,
+    //         watch: `${item.pm2_env?.watch}`,
+    //         cpu: `${item.monit?.cpu}`,
+    //         memory: `${+item.monit?.memory / 1024 / 1024}MB`,
+    //         disabled: item.name === 'admin'
+    //       }
+    //     })
+    //     this.loading = false
+    //   })
+    // },
     getAllBranch () {
       this.loading = true
       axios.post('/get-all-branch').then(({ data }) => {
         const originArr = data.split('\n')
-        const selectData = []
-        originArr.forEach(item => {
+        this.branchData = []
+        originArr.forEach((item, index) => {
           if (item) {
-            selectData.push(item.trim())
+            this.branchData.push({
+              value: index,
+              label: item.trim()
+            })
           }
         })
-        console.log(selectData)
         this.loading = false
       })
     },
-    restartProcess (name) {
+    // restartProcess (name) {
+    //   this.loading = true
+    //   axios.post('/restart-process-name', qs.stringify({
+    //     name
+    //   })).then(res => {
+    //     this.$message.success('重启成功')
+    //     this.getPm2List()
+    //   })
+    // },
+    // stopProcess (name) {
+    //   this.loading = true
+    //   axios.post('/stop-process-name', qs.stringify({
+    //     name
+    //   })).then(res => {
+    //     this.$message.success('停止成功')
+    //     this.getPm2List()
+    //   })
+    // },
+    // deleteProcess (name) {
+    //   this.loading = true
+    //   axios.post('/delete-process-name', qs.stringify({
+    //     name
+    //   })).then(res => {
+    //     this.$message.success('删除成功')
+    //     this.getPm2List()
+    //   })
+    // },
+    build () {
       this.loading = true
-      axios.post('/restart-process-name', qs.stringify({
-        name
+      axios.post('/restart-build', qs.stringify({
+        branch: this.branchLabel,
+        dir: this.dirLabel
       })).then(res => {
-        this.$message.success('重启成功')
-        this.getPm2List()
-      })
-    },
-    stopProcess (name) {
-      this.loading = true
-      axios.post('/stop-process-name', qs.stringify({
-        name
-      })).then(res => {
-        this.$message.success('停止成功')
-        this.getPm2List()
-      })
-    },
-    deleteProcess (name) {
-      this.loading = true
-      axios.post('/delete-process-name', qs.stringify({
-        name
-      })).then(res => {
-        this.$message.success('删除成功')
-        this.getPm2List()
+        this.codeStr = res.data.stdout
+        this.codeStrErr = res.data.stderr
+        this.reDrawHighlight()
+        console.log(res.data)
+        this.loading = false
       })
     },
     flushLogs () {
