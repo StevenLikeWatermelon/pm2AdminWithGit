@@ -7,6 +7,7 @@ const homePath = os.homedir() // Maybe /Users/<name> on OSX, maybe /home/<name> 
 const fs = require('fs')
 const path = require('path')
 const pm2LogPath = path.join(homePath, './.pm2/pm2.log')
+const fs = require('fs');
 
 const app = express()
 app.use(express.static('dist'))
@@ -190,7 +191,7 @@ app.post('/get-logs', function (req, res) {
 
 // 获取git 所有的branch
 app.post('/get-all-branch', function (req, res) {
-  shell.exec('git branch -r', function (code, stdout, stderr) {
+  shell.exec('git branch', function (code, stdout, stderr) {
     res.send({
       message: 'success',
       code,
@@ -198,6 +199,64 @@ app.post('/get-all-branch', function (req, res) {
       success: 1
     })
   })
+})
+
+// 动态打包
+app.post('/restart-build', function (req, res) {
+  const branch = req.body.branch
+  const dir = req.body.dir
+  const command = `git pull ${branch} && git checkout ${branch} &&  npm install && npm run build:${dir}`
+  fs.open('../sdms-wechat/server.sh', 'w', function(err, fd) {
+    if (err) {
+      res.send({
+        message: 'fail',
+        data: err || '打开配置文件失败',
+        success: 0
+      })
+    } else {
+      const buf = command
+      fs.write(fd, buf, 0, buf.length, 0, function(err, written, buffer) {
+        if (err) {
+          res.send({
+            message: 'fail',
+            data: err || '写入指令失败',
+            success: 0
+          })
+        } else {
+          const name = req.body.name
+          pm2.connect(function (err) {
+            if (err) {
+              res.send({
+                message: err,
+                data: null,
+                success: 0
+              })
+              process.exit(2)
+            }
+
+            pm2.restart(name, (err, proc) => {
+              if (err) {
+                res.send({
+                  message: err,
+                  data: [],
+                  success: 0
+                })
+              } else {
+                res.send({
+                  message: 'success',
+                  data: proc,
+                  success: 1
+                })
+                pm2.disconnect()
+              }
+            })
+          })
+        }
+      });
+
+    }
+});
+
 })
 
 const server = app.listen(3002, function () {

@@ -118,7 +118,14 @@ export default {
     getAllBranch () {
       this.loading = true
       axios.post('/get-all-branch').then(({ data }) => {
-        console.log(data)
+        const originArr = data.split('\n')
+        const selectData = []
+        originArr.forEach(item => {
+          if (item) {
+            selectData.push(item.trim())
+          }
+        })
+        console.log(selectData)
         this.loading = false
       })
     },
