@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <div class="title">
-      <span>前端中台项目运维后台</span>
+      <span>前端服务运维</span>
     </div>
     <div class="content-global">
       <el-button type="primary" :loading="loading" @click="viewLogs">查看运行日志</el-button>
@@ -21,10 +21,12 @@
           </template>
         </el-table-column>
         <el-table-column prop="restartTime" label="重启次数"> </el-table-column>
-        <el-table-column prop="port" label="服务端口号"> </el-table-column>
-        <el-table-column prop="watch" label="watch"> </el-table-column>
+        <!-- <el-table-column prop="port" label="服务端口号"> </el-table-column>
+        <el-table-column prop="watch" label="watch"> </el-table-column> -->
         <el-table-column label="操作" width="650">
           <template slot-scope="{row}">
+
+            <el-button v-if="row.name === 'wechat-mananger'"  @click="viewLogs(row.pm_out_log_path)" :loading="loading" type="success" round>查看日志</el-button>
             <el-button  @click="viewLogs(row.pm_out_log_path)" :loading="loading" type="success" round>查看日志</el-button>
             <el-button  @click="viewLogs(row.pm_err_log_path)" :loading="loading" type="success" round>查看错误日志</el-button>
             <el-button  @click="restartProcess(row.name)" :loading="loading" type="primary" round>重启服务</el-button>

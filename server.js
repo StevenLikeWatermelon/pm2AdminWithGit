@@ -7,7 +7,6 @@ const homePath = os.homedir() // Maybe /Users/<name> on OSX, maybe /home/<name> 
 const fs = require('fs')
 const path = require('path')
 const pm2LogPath = path.join(homePath, './.pm2/pm2.log')
-const fs = require('fs');
 
 const app = express()
 app.use(express.static('dist'))
@@ -191,7 +190,7 @@ app.post('/get-logs', function (req, res) {
 
 // 获取git 所有的branch
 app.post('/get-all-branch', function (req, res) {
-  shell.exec('git branch', function (code, stdout, stderr) {
+  shell.exec('cd ../SDMS-SaaS/sdms-wechat && git branch -r', function (code, stdout, stderr) {
     res.send({
       message: 'success',
       code,
@@ -204,9 +203,10 @@ app.post('/get-all-branch', function (req, res) {
 // 动态打包
 app.post('/restart-build', function (req, res) {
   const branch = req.body.branch
+  const localBranch = branch.substring(7)
   const dir = req.body.dir
-  const command = `git pull ${branch} && git checkout ${branch} &&  npm install && npm run build:${dir}`
-  fs.open('../sdms-wechat/server.sh', 'w', function(err, fd) {
+  const command = `cd ../SDMS-SaaS/sdms-wechat && git pull && git checkout ${localBranch} &&  npm install && npm run build:${dir}`
+  fs.open('./build.sh', 'w', function (err, fd) {
     if (err) {
       res.send({
         message: 'fail',
@@ -215,7 +215,7 @@ app.post('/restart-build', function (req, res) {
       })
     } else {
       const buf = command
-      fs.write(fd, buf, 0, buf.length, 0, function(err, written, buffer) {
+      fs.write(fd, buf, 0, buf.length, 0, function (err, written, buffer) {
         if (err) {
           res.send({
             message: 'fail',
@@ -252,11 +252,9 @@ app.post('/restart-build', function (req, res) {
             })
           })
         }
-      });
-
+      })
     }
-});
-
+  })
 })
 
 const server = app.listen(3002, function () {

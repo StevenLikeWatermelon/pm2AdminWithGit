@@ -1,0 +1,1 @@
+cd ../SDMS-SaaS/sdms-wechat && git pull && git checkout develop &&  npm install && npm run build:dev
